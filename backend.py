@@ -136,6 +136,12 @@ def main(params):
     batadv_graph = graph.merge_nodes(batadv_graph)
     batadv_graph = graph.to_undirected(batadv_graph)
 
+	# optional anonymize data (trigger with --anonymize)    
+	if params['anonymize']:
+        for node in nodedb['nodes']:
+            if nodedb['nodes'][node]['nodeinfo'].get('owner'):
+                nodedb['nodes'][node]['nodeinfo'].pop('owner')
+  
     # write processed data to dest dir
     with open(nodes_fn, 'w') as f:
         json.dump(nodedb, f)
@@ -153,7 +159,9 @@ def main(params):
     if params['rrd']:
         script_directory = os.path.dirname(os.path.realpath(__file__))
         rrd = RRD(os.path.join(script_directory, 'nodedb'),
-                  os.path.join(params['dest_dir'], 'nodes'))
+                  os.path.join(params['dest_dir'], 'nodes'),
+                  params['display_time_global'],
+                  params['display_time_node'])
         rrd.update_database(nodedb['nodes'])
         rrd.update_images()
 
@@ -180,6 +188,16 @@ if __name__ == '__main__':
                         default=False,
                         help='enable the rendering of RRD graphs (cpu '
                              'intensive)')
+    parser.add_argument('--rrd-time-global', dest='display_time_global', action='store',
+                        default='7d', metavar='TIME',
+                        help='set the time range for the global RRD graph')
+    parser.add_argument('--rrd-time-node', dest='display_time_node', action='store',
+                        default='1d', metavar='TIME',
+                        help='set the time range for the node RRD graph')
+    parser.add_argument('--anonymize', dest='anonymize', action='store_true',
+                        default=False,
+                        help='remove contact information')
+
 
     options = vars(parser.parse_args())
     main(options)
