@@ -136,12 +136,12 @@ def main(params):
     batadv_graph = graph.merge_nodes(batadv_graph)
     batadv_graph = graph.to_undirected(batadv_graph)
 
-	# optional anonymize data (trigger with --anonymize)    
-	if params['anonymize']:
+    # optional anonymize data (trigger with --anonymize)
+    if params['anonymize']:
         for node in nodedb['nodes']:
             if nodedb['nodes'][node]['nodeinfo'].get('owner'):
                 nodedb['nodes'][node]['nodeinfo'].pop('owner')
-  
+
     # write processed data to dest dir
     with open(nodes_fn, 'w') as f:
         json.dump(nodedb, f)
