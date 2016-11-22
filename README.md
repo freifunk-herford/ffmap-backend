@@ -109,3 +109,36 @@ If you'd like to extend your RRD graphs time range you can use the paramters
 rrd-time-node and rrd-time-global, e.g.:
 
     ./backend.py --rrd-time-node 7d --rrd-time-global 14d
+
+# Aliases Online
+
+To add aliases online with statistic you can use the parameter online-aliases, e.g.:
+
+    ./backend.py --online-aliases aliases.json
+
+Example online aliases JSON file:
+
+    [
+      {
+        "node_id": "rathaus",
+        "hostname": "Rathaus",
+        "location": {
+          "longitude": 8.6700260,
+          "latitude": 52.1160820
+        },
+        "statistics": {
+          "clients": 123
+        },
+        "network": {
+          "mesh": {
+            "bat0": {
+              "interfaces": {
+                "tunnel": [
+                  "00:25:86:e6:f1:c0"
+                ]
+              }
+            }
+          }
+        }
+      }
+    ]
