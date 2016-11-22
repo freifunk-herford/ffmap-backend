@@ -85,12 +85,8 @@ def main(params):
     for aliases in params['aliases']:
         with open(aliases, 'r') as f:
             nodeinfo = validate_nodeinfos(json.load(f))
-            nodes.import_nodeinfo(
-                nodedb['nodes'],
-                nodeinfo,
-                now,
-                assume_online=params['assume_online']
-            )
+            nodes.import_nodeinfo(nodedb['nodes'], nodeinfo,
+                                  now, assume_online=False)
 
     nodes.reset_statistics(nodedb['nodes'])
     for alfred in alfred_instances:
@@ -103,6 +99,20 @@ def main(params):
         gwl = batman.gateway_list()
 
         mesh_info.append((vd, gwl))
+
+    # integrate static online aliases data
+    for aliases in params['aliases_online']:
+        with open(aliases, 'r') as f:
+            nodeinfo = validate_nodeinfos(json.load(f))
+            nodes.import_nodeinfo(nodedb['nodes'], nodeinfo,
+                                  now, assume_online=True)
+            for node in nodeinfo:
+                statistics = node.get('statistics', None)
+                if statistics:
+                    if nodedb['nodes'][node.get('node_id')].get('statistics'):
+                        nodedb['nodes'][node.get('node_id')]['statistics'].update(statistics)
+                        nodedb['nodes'][node.get('node_id')]['nodeinfo'].pop('statistics')
+    # Todo: fake visdata and gwl
 
     # update nodedb from batman-adv data
     for vd, gwl in mesh_info:
@@ -201,10 +211,9 @@ if __name__ == '__main__':
     parser.add_argument('--anonymize', dest='anonymize', action='store_true',
                         default=False,
                         help='remove contact information')
-    parser.add_argument('--aliases-assume-online', dest='assume_online', action='store_true',
-                        default=False,
-                        help='assume aliases online')
-
+    parser.add_argument('-o', '--online-aliases', dest='aliases_online',
+                        help='Read online aliases from FILE',
+                        nargs='+', default=[], metavar='FILE')
 
     options = vars(parser.parse_args())
     main(options)
