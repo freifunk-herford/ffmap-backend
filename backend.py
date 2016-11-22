@@ -85,8 +85,12 @@ def main(params):
     for aliases in params['aliases']:
         with open(aliases, 'r') as f:
             nodeinfo = validate_nodeinfos(json.load(f))
-            nodes.import_nodeinfo(nodedb['nodes'], nodeinfo,
-                                  now, assume_online=False)
+            nodes.import_nodeinfo(
+                nodedb['nodes'],
+                nodeinfo,
+                now,
+                assume_online=params['assume_online']
+            )
 
     nodes.reset_statistics(nodedb['nodes'])
     for alfred in alfred_instances:
@@ -197,6 +201,9 @@ if __name__ == '__main__':
     parser.add_argument('--anonymize', dest='anonymize', action='store_true',
                         default=False,
                         help='remove contact information')
+    parser.add_argument('--aliases-assume-online', dest='assume_online', action='store_true',
+                        default=False,
+                        help='assume aliases online')
 
 
     options = vars(parser.parse_args())
