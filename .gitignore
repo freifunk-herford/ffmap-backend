@@ -6,3 +6,7 @@ nodedb/
 *.pyc
 pycache/
 __pycache__/
+
+.idea/
+contrib/temp/
+

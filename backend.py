@@ -101,18 +101,78 @@ def main(params):
         mesh_info.append((vd, gwl))
 
     # integrate static online aliases data
+
+    gwc = {}
+
+    # parse aliases for gateways
+    for aliases in params['aliases_online']:
+        with open(aliases, 'r') as f:
+            nodeinfo = validate_nodeinfos(json.load(f))
+            for node in nodeinfo:
+                try:
+                    system = nodedb['nodes'][node.get('node_id')]['nodeinfo'].get('system', None)
+                    if system:
+                        # if role is gatway add mac to gateway list (gwl)
+                        if nodedb['nodes'][node.get('node_id')]['nodeinfo']['system'].get('role') == 'gateway':
+                            mac = nodedb['nodes'][node.get('node_id')]['nodeinfo']['network'].get('mac', None)
+                            if mac:
+                                # extend gwl
+                                gwl.append(mac)
+                                # fake visdata
+                                vd.append({"primary": mac})
+                                gwc[mac] = 0
+                except KeyError:
+                    pass
+
+    # parse data from aliases
     for aliases in params['aliases_online']:
         with open(aliases, 'r') as f:
             nodeinfo = validate_nodeinfos(json.load(f))
             nodes.import_nodeinfo(nodedb['nodes'], nodeinfo,
                                   now, assume_online=True)
             for node in nodeinfo:
-                statistics = node.get('statistics', None)
+                gateways = nodedb['nodes'][node.get('node_id')]['nodeinfo']['network'].get('gateway', None)
+                # if gateway in gwl fake visdata
+                if gateways:
+                    if isinstance(gateways, str):
+                        gateways = [ gateways ]
+                    for gateway in gateways:
+                        gateway = ':'.join(gateway[i:i+2] for i in range(0,12,2))
+                        if gateway in gwl:
+                            mac = nodedb['nodes'][node.get('node_id')]['nodeinfo']['network'].get('mac', None)
+                            if mac:
+                                # fake visdata
+                                vd.append({"primary": mac})
+                                vd.append({"router": mac, "label": "TT", "gateway": gateway})
+                                vd.append({"router": mac, "label": "1.000", "neighbor": gateway})
+                                # count node to gateway clients
+                                try:
+                                    gwc[gateway] += 1
+                                except KeyError:
+                                    pass
+                # add Statistics from aliases
+                try:
+                    statistics = node.get('statistics', None)
+                except KeyError:
+                    pass
                 if statistics:
                     if nodedb['nodes'][node.get('node_id')].get('statistics'):
                         nodedb['nodes'][node.get('node_id')]['statistics'].update(statistics)
                         nodedb['nodes'][node.get('node_id')]['nodeinfo'].pop('statistics')
-    # Todo: fake visdata and gwl
+
+    if params['aliases_online']:
+        # update gateway clients
+        for gw in gwc:
+            node = gw.replace(':', '')
+            try:
+                clients = nodedb['nodes'][node]['statistics'].get('clients')
+                nodedb['nodes'][node]['statistics']['clients'] = clients + gwc[gw]
+                clients = nodedb['nodes'][node]['statistics'].get('clients')
+            except KeyError:
+                pass
+        # rebuild mesh_info
+        mesh_info = []
+        mesh_info.append((vd, gwl))
 
     # update nodedb from batman-adv data
     for vd, gwl in mesh_info:
